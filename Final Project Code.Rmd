@@ -1,0 +1,195 @@
+---
+title: "Final Project Code"
+author: "Raven Olson"
+output: html_document
+---
+
+# Import libraries and dataset
+```{r}
+library(tidyverse)
+library(readr)
+
+NFLpbp2023 <- read_csv("pbp-2023.csv")
+#View(NFLpbp2023)
+```
+
+# Re-classify data types
+```{r}
+# Change GameDate into date-type
+NFLpbp2023$GameDate <- as.Date(NFLpbp2023$GameDate, "%m/%d/%Y")
+
+# Change selected columns into factors
+NFLpbp2023$GameId <- as.factor(NFLpbp2023$GameId)
+NFLpbp2023$OffenseTeam <- as.factor(NFLpbp2023$OffenseTeam)
+NFLpbp2023$DefenseTeam <- as.factor(NFLpbp2023$DefenseTeam)
+NFLpbp2023$Formation <- as.factor(NFLpbp2023$Formation)
+NFLpbp2023$PlayType <- as.factor(NFLpbp2023$PlayType)
+NFLpbp2023$PassType <- as.factor(NFLpbp2023$PassType)
+NFLpbp2023$RushDirection <- as.factor(NFLpbp2023$RushDirection)
+NFLpbp2023$YardLineDirection <- as.factor(NFLpbp2023$YardLineDirection)
+NFLpbp2023$PenaltyTeam <- as.factor(NFLpbp2023$PenaltyTeam)
+NFLpbp2023$PenaltyType <- as.factor(NFLpbp2023$PenaltyType)
+
+# Change binary columns into integer-type
+NFLpbp2023$SeriesFirstDown <- as.integer(NFLpbp2023$SeriesFirstDown)
+NFLpbp2023$IsRush <- as.integer(NFLpbp2023$IsRush)
+NFLpbp2023$IsPass <- as.integer(NFLpbp2023$IsPass)
+NFLpbp2023$IsIncomplete <- as.integer(NFLpbp2023$IsIncomplete)
+NFLpbp2023$IsTouchdown <- as.integer(NFLpbp2023$IsTouchdown)
+NFLpbp2023$IsSack <- as.integer(NFLpbp2023$IsSack)
+NFLpbp2023$IsChallenge <- as.integer(NFLpbp2023$IsChallenge)
+NFLpbp2023$IsChallengeReversed <- as.integer(NFLpbp2023$IsChallengeReversed)
+NFLpbp2023$IsChallenge <- as.integer(NFLpbp2023$IsChallenge)
+NFLpbp2023$IsInterception <- as.integer(NFLpbp2023$IsInterception)
+NFLpbp2023$IsFumble <- as.integer(NFLpbp2023$IsFumble)
+NFLpbp2023$IsPenalty <- as.integer(NFLpbp2023$IsPenalty)
+NFLpbp2023$IsTwoPointConversion <- as.integer(NFLpbp2023$IsTwoPointConversion)
+NFLpbp2023$IsTwoPointConversionSuccessful <- as.integer(NFLpbp2023$IsTwoPointConversionSuccessful)
+NFLpbp2023$IsPenaltyAccepted <- as.integer(NFLpbp2023$IsPenaltyAccepted)
+NFLpbp2023$IsNoPlay <- as.integer(NFLpbp2023$IsNoPlay)
+
+# Change cerrtain columns into integers
+NFLpbp2023$Quarter <- as.integer(NFLpbp2023$Quarter)
+NFLpbp2023$Down <- as.integer(NFLpbp2023$Down)
+
+```
+
+# Make a copy of dataset to clean and manipulate
+```{r}
+# Create a copy of the dataset
+NFLpbp2023v2 <- data.frame(NFLpbp2023)
+
+# Delete unneeded columns
+NFLpbp2023v2 <- NFLpbp2023v2[, -c(11, 13, 14, 17, 18, 31, 32)]
+
+# Create Vikings subsets
+vikings2023 <- NFLpbp2023v2[NFLpbp2023v2$OffenseTeam == "MIN" | NFLpbp2023v2$DefenseTeam == "MIN", ] # Vikings offense and defense
+vikings2023_offense <- vikings2023[vikings2023$OffenseTeam == "MIN",] # Vikings offense
+
+# Edit the Vikings offense subset
+vikings2023_offensev2 <- vikings2023_offense[vikings2023_offense$Down != 0,] # Removes timeouts, kickoffs, etc. 
+
+# Create a separate subsets for Vikings rushing offense
+vikings2023_rushing <- vikings2023_offensev2[vikings2023_offensev2$IsRush == 1,]
+vikings2023_rushingV2 <- vikings2023_rushing[vikings2023_rushing$IsPenaltyAccepted != 1,]
+vikings2023_rushingV3 <- vikings2023_rushingV2[vikings2023_rushingV2$PlayType == "RUSH",]
+vikings2023_rushingV3$Quarter <- as.factor(vikings2023_rushingV3$Quarter)
+vikings2023_rushingV3$Down <- as.factor(vikings2023_rushingV3$Down)
+#View(vikings2023_rushingV3)
+
+```
+
+# Create data frames, sums, and etc.
+```{r}
+# Retrieve the total Vikings yards
+vikes_totalRush <- sum(vikings2023_rushingV3$Yards)
+#vikes_totalRush
+
+```
+
+# Team Statistic Graphs
+```{r}
+# Attempts per Down Calculation
+attempts_per_down <- vikings2023_rushingV3 %>%
+  group_by(Down) %>%
+  summarize(attempts = n())
+# Attempts per Down Pie Chart
+ggplot(attempts_per_down, aes(x = "", y = attempts, fill = factor(Down))) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = attempts),
+            position = position_stack(vjust = 0.5)) +
+  theme_void() +
+  labs(title = "Attempts per Down", fill = "Down")
+
+# Yards per Down Calculation
+yards_per_down <- vikings2023_rushingV3 %>%
+  group_by(Down) %>%
+  summarize(totalYards = sum(Yards))
+# Yards per Down Pie Chart
+ggplot(yards_per_down, aes(x = "", y = totalYards, fill = factor(Down))) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = totalYards),
+            position = position_stack(vjust = 0.5)) +
+  theme_void() +
+  labs(title = "Yards per Down", fill = "Down")
+
+# Yards per Quarter Calculation
+yards_per_quarter <- vikings2023_rushingV3 %>%
+  group_by(Quarter) %>%
+  summarize(totalYards = sum(Yards))
+# Yards per Quarter Pie Chart
+ggplot(yards_per_quarter, aes(x = "", y = totalYards, fill = factor(Quarter))) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = totalYards),
+            position = position_stack(vjust = 0.5)) +
+  theme_void() +
+  labs(title = "Yards per Quarter", fill = "Quarter")
+
+# Attempts per Quarter Calculation
+attempts_per_quarter <- vikings2023_rushingV3 %>%
+  group_by(Quarter) %>%
+  summarize(attempts = n())
+# Attempts per Quarter Calculation
+ggplot(attempts_per_quarter, aes(x = "", y = attempts, fill = factor(Quarter))) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = attempts),
+            position = position_stack(vjust = 0.5)) +
+  theme_void() +
+  labs(title = "Attempts per Quarter", fill = "Quarter")
+```
+
+# Rushing Direction
+```{r}
+# Attempts per Rushing Direction
+ggplot(vikings2023_rushingV3, aes(x = RushDirection, fill = RushDirection)) +
+  geom_bar(position = "dodge", color = "white") +
+  labs(title = "Attempts per Rushing Direction", x = "Rush Direction", y = "Frequency", fill = "Rush Direction") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+# Rush Direction Aggregation
+aggregated_rushDirection <- vikings2023_rushingV3 %>%
+  group_by(RushDirection) %>%
+  summarize(totalYards = sum(Yards))
+# Rush Direction Aggergated Pie CHart
+ggplot(aggregated_rushDirection, aes(x = "", y = totalYards, fill = RushDirection)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = totalYards),
+            position = position_stack(vjust = 0.5)) +
+  theme_void() +
+  labs(title = "Yards per Rushing Direction", fill = "Rush Direction")
+
+# Rush Direction Avg Yards Aggregation
+aggregated_directionAvg <- vikings2023_rushingV3 %>%
+  group_by(RushDirection) %>%
+  summarize(avgYards = mean(Yards))
+# Rush Direction Avg Yards Aggregated Pie Chart
+ggplot(aggregated_directionAvg, aes(x = "", y = avgYards, fill = RushDirection)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = sprintf("%.2f", avgYards)),
+            position = position_stack(vjust = 0.5)) +
+  theme_void() +
+  labs(title = "Average Yards per Rushing Direction", fill = "Rush Direction")
+```
+
+
+# Quantitative Analysis
+```{r}
+# Create AOV model
+vikes_AOV <- aov(Yards ~ Quarter + Down + Formation + RushDirection + YardLineDirection, data = vikings2023_rushingV3)
+
+# Check for normality
+qqnorm(residuals(vikes_AOV))
+qqline(residuals(vikes_AOV))
+shapiro.test(residuals(vikes_AOV))
+
+# Check the AOV model
+summary(vikes_AOV)
+
+```
+
