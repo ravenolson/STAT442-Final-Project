@@ -67,12 +67,20 @@ vikings2023 <- NFLpbp2023v2[NFLpbp2023v2$OffenseTeam == "MIN" | NFLpbp2023v2$Def
 vikings2023_offense <- vikings2023[vikings2023$OffenseTeam == "MIN",] # Vikings offense
 
 # Edit the Vikings offense subset
-vikings2023_offensev2 <- vikings2023_offense[vikings2023_offense$Down != 0,] # Removes timeouts, kickoffs, etc. 
+# Removes timeouts, kickoffs, etc.
+vikings2023_offensev2 <- vikings2023_offense[vikings2023_offense$Down != 0,]
 
-# Create a separate subsets for Vikings rushing offense
+# Create separate subsets for Vikings rushing offense
 vikings2023_rushing <- vikings2023_offensev2[vikings2023_offensev2$IsRush == 1,]
+
+# Remove any rushing plays with accepted penalties
 vikings2023_rushingV2 <- vikings2023_rushing[vikings2023_rushing$IsPenaltyAccepted != 1,]
+
+# Select ONLY running plays considered "RUSH"
+# Removes any quarterback "SCRAMBLE" plays
 vikings2023_rushingV3 <- vikings2023_rushingV2[vikings2023_rushingV2$PlayType == "RUSH",]
+
+# Re-classify Quarter and Down to factors 
 vikings2023_rushingV3$Quarter <- as.factor(vikings2023_rushingV3$Quarter)
 vikings2023_rushingV3$Down <- as.factor(vikings2023_rushingV3$Down)
 #View(vikings2023_rushingV3)
@@ -81,7 +89,7 @@ vikings2023_rushingV3$Down <- as.factor(vikings2023_rushingV3$Down)
 
 # Create data frames, sums, and etc.
 ```{r}
-# Retrieve the total Vikings yards
+# Retrieve the total Vikings RUSHING yards
 vikes_totalRush <- sum(vikings2023_rushingV3$Yards)
 #vikes_totalRush
 
